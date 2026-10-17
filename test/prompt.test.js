@@ -8,6 +8,8 @@ test("the system prompt states the rules the code relies on", () => {
   assert.match(SYSTEM_PROMPT, /"unknown"/);
   assert.match(SYSTEM_PROMPT, /ADDED/);
   assert.match(SYSTEM_PROMPT, /Never invent/);
+  assert.match(SYSTEM_PROMPT, /Do not answer "unknown" just because/);
+  assert.match(SYSTEM_PROMPT, /Never guess to avoid/);
 });
 
 test("the data block cannot be closed from inside it", () => {
