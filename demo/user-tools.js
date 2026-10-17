@@ -1,4 +1,3 @@
-// Throwaway file for the first real run of the Action. It contains deliberate mistakes. Never merge.
 import fs from "node:fs";
 import { execSync } from "node:child_process";
 
