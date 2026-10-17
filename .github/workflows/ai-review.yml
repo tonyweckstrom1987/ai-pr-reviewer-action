@@ -22,4 +22,4 @@ jobs:
           model: deepseek/deepseek-chat
           max-input-tokens: "20000"
           max-output-tokens: "1500"
-          max-runs-per-pr: "5"
+          max-runs-per-pr: "10"
