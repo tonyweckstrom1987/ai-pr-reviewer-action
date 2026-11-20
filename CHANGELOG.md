@@ -9,6 +9,13 @@ Korjattu (tietoturva):
 - PR:n otsikko siirrettiin `<data>`-lohkon sisään rivin `PR TITLE:` alle. Aiemmin otsikko lähetettiin lohkon ulkopuolella, vaikka sen kirjoittaa PR:n tekijä. Nyt se normalisoidaan ja puhdistetaan (defang) kuten diff, ja järjestelmäkehote kertoo, että myös otsikkorivi on epäluotettavaa tekstiä. Uusi testi varmistaa, että otsikkoon upotettu `</data>` ei sulje lohkoa (234d9c0).
 - Virheellinen `base-url` (http-osoite, jäsentymätön osoite tai osoite, jossa on tunnus ja salasana) hylätään nyt ennen ajokerran varausta. Aiemmin tarkistus tehtiin vasta varauksen jälkeen, joten virheellinen osoite saattoi jättää varauskommentin ja kuluttaa ajokerran. Uusi testi varmistaa, ettei kommenttia, mallikutsua eikä GitHub-kirjoitusta synny (3548b42).
 
+Lisätty:
+
+- Uusi valinnainen syöte `context-lines` (oletus 0 = pois, enintään 20). Kun arvo on suurempi kuin 0, jokaisen muutoslohkon ympärille liitetään enintään näin monta muuttumatonta riviä molemmin puolin. Rivit luetaan head-commitista contents-rajapinnalla (vain GET, enintään 20 tiedostoa ajoa kohden) ja merkitään kehotteessa kontekstiksi. Tausta: tarkastaja näki pelkän patchin ja saattoi hylätä koodin sillä perusteella, että funktio näytti katkeavan.
+- Kontekstirivit lasketaan `max-input-tokens`-katon sisään ja siivotaan (`redact`) kuten diff. Jos ne eivät mahdu, luku epäonnistuu tai tiedoston sisältö ei vastaa patchia, tiedosto tarkistetaan pelkällä patchilla. Lokiin kirjataan vain virheen tyyppi ja HTTP-tila.
+- Oletus 0 ei muuta kehotetta eikä pyyntöjä lainkaan. Järjestelmäkehotteeseen lisätään kontekstia koskeva huomautus vain, jos jokin tiedosto sai kontekstia.
+- Rajat: `limits.js`:n olemassa olevia arvoja ei muutettu. Uudet vakiot: `MAX_CONTEXT_LINES` (20), `MAX_CONTEXT_FILES` (20), `MAX_CONTEXT_LINE_CHARS` (400).
+
 Muuta:
 
 - Uusi laatumittari `eval/`: 17 itse kirjoitettua diffiä (13 tunnettua vikaa, 5 puhdasta diffiä), mekaaninen pisteytys ja tallennetut mallivastaukset (kasetit kansiossa `eval/cassettes/`), joten CI ei tee mallikutsuja. Tiedostot, tunnisteet ja tulosteet ovat englanniksi (`eval/run.js`, `eval/score.js`, `eval/cases.js`, `eval/stub-models.js`). README:hen lisättiin osio Laatu. Kielimallia ei ole vielä mitattu: kasetit ovat kahdelta keinomallilta. Testejä on nyt 209, joista 208 menee läpi ja 1 on todo-tilassa.
@@ -16,10 +23,11 @@ Muuta:
 - Uudet rajatapaustestit `redact`-, `render`- ja `parseMarker`-toiminnoille (`test/edges.test.js`). Kaksi niistä on merkitty todo-tilaan tunnetuiksi aukoiksi: `;`-merkin jälkeinen osa arvosta ei peity, eikä pienellä kirjoitettu `bearer <token>` peity. README:n testimäärä on 179 (aiemmin 130) (00a3466).
 - Offline-injektiosarjan tulokset lisättiin tiedostoon `injektio/RESULTS.md`, ja README viittaa niihin. Tulokset ovat kahdelta tekaistulta mallilta (koodia, ei kielimalleja), joten ne eivät kerro oikeiden mallien käytöksestä (1ecdf82).
 - README:n kilpailijavertailun PR-Agent-linkki osoittaa uuteen osoitteeseen `The-PR-Agent/pr-agent` sekä englannin- että suomenkielisessä README:ssä (0933f2c).
+- Kontekstirivin katkaisu 400 merkkiin pudottaa myös katkaisukohdassa kesken jääneen sanan, jotta katkennut salaisuus ei lähde mallille lukukelpoisena alkuna (`redact()` ei tunnista liian lyhyttä pätkää). Testi lisätty (`test/context.test.js`).
 
 - Marketplace-valmius, osa 2: README-tiedostoihin uudet osiot Permissions/Oikeudet (tarvittavat oikeudet perusteluineen) ja Versioning and pinning/Versiointi ja kiinnitys (semver-tagit, SHA-kiinnitys, tuleva liikkuva `v1`-päätagi). Uusi `RELEASING.md` kertoo julkaisun tarkistuslistan ja Marketplace-julkaisun vaiheet. Kolme uutta testiä tarkistavat, ettei brändäyksen kuvake ole GitHubin poistamien Feather-kuvakkeiden joukossa, että README-tiedostojen oikeustaulukot vastaavat esimerkkiä ja että `SECURITY.md` nimeää `package.json`in version tuetuksi.
 
-Testejä on 198 (tilanne 19.11.2026), joista 197 menee läpi ja 1 on todo-tilassa.
+Testejä on 229 (tilanne 20.11.2026), joista 228 menee läpi ja 1 on todo-tilassa.
 
 ## 0.1.2 (6.11.2026)
 
