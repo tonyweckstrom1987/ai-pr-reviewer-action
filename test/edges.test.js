@@ -32,11 +32,65 @@ test("redact: a value ending in ; or , keeps the terminator outside the redactio
   assert.equal(redact("password=abcdef;").count, 1);
 });
 
-// Known gap (not locked as expected behaviour): the value stops at the first ';',
-// so the part after it is left visible. Marked todo until the redact rule is fixed.
-test("redact: the part of a value after ';' should also be hidden", { todo: "known redact gap" }, () => {
+test("redact: the part of a value after ';' is also hidden", () => {
   const r = redact("password=abc;def123");
   assert.doesNotMatch(r.text, /def123/);
+});
+
+test("redact: ';' in other positions stays inside the value, a trailing ';' stays outside", () => {
+  assert.equal(redact("token=abcdef;ghijkl").text, "token=[REDACTED]");
+  assert.equal(redact("token=;abcdef;ghi").text, "token=[REDACTED]");
+  assert.equal(redact('secret="ab;cdef123"').text, 'secret="[REDACTED]"');
+  assert.equal(redact("password=abcdef;;").text, "password=[REDACTED];;");
+  assert.equal(redact("password=abcdef; next=1").text, "password=[REDACTED]; next=1");
+});
+
+test("redact: a ';' before another assignment ends the value, so the next secret is still hidden", () => {
+  const cases = [
+    ["token=abcdef;password= hunter2xyz", "token=[REDACTED];password= [REDACTED]", 2],
+    ["token=abcdef;password='hunter2xyz'", "token=[REDACTED];password='[REDACTED]'", 2],
+    ['token=abcdef;password="hunter2xyz"', 'token=[REDACTED];password="[REDACTED]"', 2],
+    ["token=abcdef;password:hunter2xyz", "token=[REDACTED];password:[REDACTED]", 2],
+    ["token=abcdef;user=bob;pwd=hunter2xyz", "token=[REDACTED];user=bob;pwd=[REDACTED]", 2],
+    ["token=abcdef;;password=hunter2xyz", "token=[REDACTED];;password=[REDACTED]", 2],
+    ["token=abcdef;password=", "token=[REDACTED];password=", 1],
+  ];
+  for (const [input, text, count] of cases) {
+    const r = redact(input);
+    assert.equal(r.text, text, input);
+    assert.equal(r.count, count, input);
+  }
+});
+
+test("redact: the next secret name may have a dot, a dash or a prefix; the ';' still ends the value", () => {
+  const cases = [
+    ["token=abcdef;db.password= hunter2xyz", "token=[REDACTED];db.password= [REDACTED]", 2],
+    ["token=abcdef;my-password= hunter2xyz", "token=[REDACTED];my-password= [REDACTED]", 2],
+    ["token=abcdef;-password= hunter2xyz", "token=[REDACTED];-password= [REDACTED]", 2],
+    ["token=abcdef;db.password='hunter2xyz'", "token=[REDACTED];db.password='[REDACTED]'", 2],
+    ['token=abcdef;my-password="hunter2xyz"', 'token=[REDACTED];my-password="[REDACTED]"', 2],
+    ["token=abcdef;-password:hunter2xyz", "token=[REDACTED];-password:[REDACTED]", 2],
+    ["token=abcdef;db.password = hunter2xyz", "token=[REDACTED];db.password = [REDACTED]", 2],
+  ];
+  for (const [input, text, count] of cases) {
+    const r = redact(input);
+    assert.equal(r.text, text, input);
+    assert.equal(r.count, count, input);
+    assert.doesNotMatch(r.text, /hunter2xyz/, input);
+  }
+});
+
+test("redact: a long run of ';' separated parts stays fast", () => {
+  const t = Date.now();
+  const r = redact("token=" + "abcdefg;".repeat(20000));
+  assert.equal(r.count, 1);
+  assert.ok(Date.now() - t < 2000);
+});
+
+test("redact: ';' followed by plain text (no assignment) still joins the value into one match", () => {
+  const r = redact("token=abcdef;ghijkl;mnopqr");
+  assert.equal(r.text, "token=[REDACTED]");
+  assert.equal(r.count, 1);
 });
 
 test("redact: a value stops at the line end and the next line is untouched", () => {
